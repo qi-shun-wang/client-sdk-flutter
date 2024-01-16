@@ -1,4 +1,4 @@
-// Copyright 2023 LiveKit, Inc.
+// Copyright 2024 LiveKit, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -126,6 +126,7 @@ class ScreenShareCaptureOptions extends VideoCaptureOptions {
       : super(params: captureOptions.params);
 
   ScreenShareCaptureOptions copyWith({
+    bool? useiOSBroadcastExtension,
     bool? captureScreenAudio,
     VideoParameters? params,
     String? sourceId,
@@ -134,6 +135,8 @@ class ScreenShareCaptureOptions extends VideoCaptureOptions {
     String? selfBrowserSurface,
   }) =>
       ScreenShareCaptureOptions(
+        useiOSBroadcastExtension:
+            useiOSBroadcastExtension ?? this.useiOSBroadcastExtension,
         captureScreenAudio: captureScreenAudio ?? this.captureScreenAudio,
         params: params ?? this.params,
         sourceId: sourceId ?? deviceId,

@@ -1,4 +1,4 @@
-// Copyright 2023 LiveKit, Inc.
+// Copyright 2024 LiveKit, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,10 +21,10 @@ import '../../events.dart';
 import '../../logger.dart';
 import '../../proto/livekit_models.pb.dart' as lk_models;
 import '../../proto/livekit_rtc.pb.dart' as lk_rtc;
+import '../../stats/stats.dart';
 import '../../support/platform.dart';
 import '../../types/other.dart';
 import '../options.dart';
-import '../stats.dart';
 import 'audio.dart';
 import 'local.dart';
 
@@ -62,7 +62,7 @@ class LocalVideoTrack extends LocalTrack with VideoTrack {
 
   @override
   Future<bool> monitorStats() async {
-    if (sender == null || events.isDisposed) {
+    if (sender == null || events.isDisposed || !isActive) {
       _currentBitrate = 0;
       return false;
     }
@@ -156,7 +156,7 @@ class LocalVideoTrack extends LocalTrack with VideoTrack {
     rtc.MediaStreamTrack track,
     this.currentOptions,
   ) : super(
-          lk_models.TrackType.VIDEO,
+          TrackType.VIDEO,
           source,
           stream,
           track,
@@ -341,7 +341,7 @@ extension LocalVideoTrackExt on LocalVideoTrack {
     return setPublishingLayersForSender(track!.sender!, encodings, layers);
   }
 
-  lk_models.VideoQuality videoQualityForRid(String rid) {
+  lk_models.VideoQuality _videoQualityForRid(String rid) {
     switch (rid) {
       case 'f':
         return lk_models.VideoQuality.HIGH;
@@ -412,7 +412,7 @@ extension LocalVideoTrackExt on LocalVideoTrack {
         if (rid == '') {
           rid = 'q';
         }
-        var quality = videoQualityForRid(rid);
+        var quality = _videoQualityForRid(rid);
         var subscribedQuality =
             layers.firstWhereOrNull((q) => q.quality == quality);
         if (subscribedQuality == null) {
@@ -446,9 +446,13 @@ extension LocalVideoTrackExt on LocalVideoTrack {
 
     if (hasChanged) {
       params.encodings = encodings;
-      final result = await sender.setParameters(params);
-      if (result == false) {
-        logger.warning('Failed to update sender parameters');
+      try {
+        final result = await sender.setParameters(params);
+        if (result == false) {
+          logger.warning('Failed to update sender parameters');
+        }
+      } catch (e) {
+        logger.warning('Failed to update sender parameters $e');
       }
     }
   }

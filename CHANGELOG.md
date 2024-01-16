@@ -1,5 +1,59 @@
 # CHANGELOG
 
+## 1.5.6
+
+* Set different rendering methods for web and native.
+* Improve reconnection events, add RoomAttemptReconnectEvent.
+* upgrade protocol.
+
+## 1.5.5
+
+* Improve reconnect logic for websocket (#406)
+* Fix: Prevent ReplayKitChannel related code from being executed on non-iOS platforms. (#432)
+
+## 1.5.4
+
+* Add AudioSourceStats.
+* Fix: invalid muted state for local publication.
+* Add MediaConnectException.
+* Fix preview bug for desktop screen share.
+* Fix errors caused by window close handler for web.
+* Add topic for search optimization in pub.dev.
+* Fix safari screen sharing failure.
+* Fix e2ee worker compile for flutter web.
+* Fix video renderer issue.
+* Fix: video renderer dispose issue and correctly handle metadataMuted for TrackPublication.
+* Fix getStats for remote track.
+* Fix set setScreenShareEnabled when detect replaykit state changed.
+* Improve room/participants metadata update.
+* Simplify backupCodec setting.
+
+## 1.5.3
+
+* Handling of incompatible published codecs.
+* Fix/unpublish screen audio track when stop screen share.
+* Upgrade connectivity_plus version.
+* Fix: low-resolution screen sharing for safari 17.
+* Update build.gradle for gradle 8.0.0 namespace.
+* Fix captureScreenAudio conditional.
+* Fix iOSBroadcastExtension always false after copyWith invoked.
+* Fix: VP9 svc screenshare.
+* Fix iOS example compilation after upgrading to XCode 15.
+* Fix: Crop video output size to target settings (iOS/macOS).
+* Fix: Fix bluetooth sco not stopping after room disconnect (Android).
+
+## 1.5.2
+
+* Non-functional update, forcing the versions in 
+  `'ios/livekit_client.podspec', 'macos/livekit_client.podspec', 'lib/src/livekit.dart'` 
+  consistent with pubspec.yaml
+
+## 1.5.1
+
+* Fixed Renderer bug for Windows.
+* E2EE Improvements.
+* Fixed error when sending events on non-platform thread [iOS/macOS].
+
 ## 1.5.0
 
 * Update default bitrates according to VMAF guide

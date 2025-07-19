@@ -16,99 +16,79 @@
 
 package io.livekit.plugin
 
-import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
 import androidx.annotation.NonNull
+import androidx.core.content.ContextCompat
+import com.cloudwebrtc.webrtc.FlutterWebRTCPlugin
+import com.cloudwebrtc.webrtc.LocalTrack
+import com.cloudwebrtc.webrtc.video.LocalVideoTrack
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import java.nio.ByteBuffer
 
-import com.cloudwebrtc.webrtc.FlutterWebRTCPlugin
-import com.cloudwebrtc.webrtc.audio.LocalAudioTrack
-import io.flutter.plugin.common.BinaryMessenger
-import org.webrtc.AudioTrack
 
 /** LiveKitPlugin */
-class LiveKitPlugin: FlutterPlugin, MethodCallHandler {
-  private var processors = mutableMapOf<String, Visualizer>()
-  private var flutterWebRTCPlugin = FlutterWebRTCPlugin.sharedSingleton
-  private var binaryMessenger: BinaryMessenger? = null
-  /// The MethodChannel that will the communication between Flutter and native Android
-  ///
-  /// This local reference serves to register the plugin with the Flutter Engine and unregister it
-  /// when the Flutter Engine is detached from the Activity
-  private lateinit var channel : MethodChannel
 
-  override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-    channel = MethodChannel(flutterPluginBinding.binaryMessenger, "livekit_client")
-    channel.setMethodCallHandler(this)
-    binaryMessenger = flutterPluginBinding.binaryMessenger
-  }
+class LiveKitPlugin : FlutterPlugin, MethodCallHandler {
+    private lateinit var channel: MethodChannel
+    private lateinit var context: Context
+    private var binaryMessenger: BinaryMessenger? = null
 
-  @SuppressLint("SuspiciousIndentation")
-  private fun handleStartVisualizer(@NonNull call: MethodCall, @NonNull result: Result) {
-    val trackId = call.argument<String>("trackId")
-    val visualizerId = call.argument<String>("visualizerId")
-    if (trackId == null || visualizerId == null) {
-      result.error("INVALID_ARGUMENT", "trackId and visualizerId is required", null)
-      return
+    private val flutterWebRTCPlugin = FlutterWebRTCPlugin.sharedSingleton
+    private val videoFrameProcessor = VideoFrameProcessor()
+
+    override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+        context = flutterPluginBinding.applicationContext
+        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "livekit_client")
+        channel.setMethodCallHandler(this)
+        binaryMessenger = flutterPluginBinding.binaryMessenger
+
+
     }
-    var audioTrack: LKAudioTrack? = null
-    val barCount = call.argument<Int>("barCount") ?: 7
-    val isCentered = call.argument<Boolean>("isCentered") ?: true
-    var smoothTransition = call.argument<Boolean>("smoothTransition") ?: true
 
-    val track = flutterWebRTCPlugin.getLocalTrack(trackId)
-    if (track != null) {
-      audioTrack = LKLocalAudioTrack(track as LocalAudioTrack)
-    } else {
-      val remoteTrack = flutterWebRTCPlugin.getRemoteTrack(trackId)
-        if (remoteTrack != null) {
-            audioTrack = LKRemoteAudioTrack(remoteTrack as AudioTrack)
+    override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
+        channel.setMethodCallHandler(null)
+    }
+
+    override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
+        when (call.method) {
+            "startRecording" -> {
+                val dir = call.argument<String>("outputDir")
+                if ( dir.isNullOrEmpty()) {
+                    result.error("INVALID_ARGUMENT", "trackId and outputDir are required", null)
+                    return
+                }
+                val intent = Intent(context, HlsRecorderService::class.java).apply {
+                    putExtra("outputDir", dir)
+                }
+                ContextCompat.startForegroundService(context, intent)
+                result.success(null)
+            }
+            "stopRecording" -> {
+                context.stopService(Intent(context, HlsRecorderService::class.java))
+                result.success(null)
+            }
+
+            "video_frame_processor_init" -> {
+                val trackId = call.argument<String>("trackId")
+                val track = flutterWebRTCPlugin.getLocalTrack(trackId)
+
+                if (track is LocalVideoTrack) {
+                    track.addProcessor(videoFrameProcessor)
+                    result.success(null)
+                } else {
+                    result.error("trackNotFound", "Video track not found for ID: $trackId", null)
+                }
+            }
+
+            else -> result.notImplemented()
         }
     }
-
-    if(audioTrack == null) {
-      result.error("INVALID_ARGUMENT", "track not found", null)
-      return
-    }
-
-    val visualizer = Visualizer(
-      barCount = barCount, isCentered = isCentered, 
-      smoothTransition = smoothTransition,
-      audioTrack = audioTrack, binaryMessenger = binaryMessenger!!,
-      visualizerId = visualizerId)
-
-    processors[visualizerId] = visualizer
-    result.success(null)
-  }
-
-  private fun handleStopVisualizer(@NonNull call: MethodCall, @NonNull result: Result) {
-    val trackId = call.argument<String>("trackId")
-    val visualizerId = call.argument<String>("visualizerId")
-    if (trackId == null || visualizerId == null) {
-      result.error("INVALID_ARGUMENT", "trackId and visualizerId is required", null)
-      return
-    }
-    processors.entries.removeAll { (k, v) -> k == visualizerId }
-    result.success(null)
-  }
-
-  override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
-    if(call.method == "startVisualizer") {
-      handleStartVisualizer(call, result)
-      return
-    } else if(call.method == "stopVisualizer") {
-      handleStopVisualizer(call, result)
-      return
-    }
-    // no-op for now
-    result.notImplemented()
-  }
-
-  override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
-    channel.setMethodCallHandler(null)
-  }
 }
+ 

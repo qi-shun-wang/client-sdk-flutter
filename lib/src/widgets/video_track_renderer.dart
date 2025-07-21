@@ -88,8 +88,7 @@ class _VideoTrackRendererState extends State<VideoTrackRenderer> {
   late GlobalKey _internalKey;
 
   Future<rtc.VideoRenderer> _initializeRenderer() async {
-    if (lkPlatformIs(PlatformType.iOS) &&
-        widget.renderMode == VideoRenderMode.platformView) {
+    if (lkPlatformIs(PlatformType.iOS) && widget.renderMode == VideoRenderMode.platformView) {
       return Null as Future<rtc.VideoRenderer>;
     }
     if (_renderer == null) {
@@ -114,8 +113,12 @@ class _VideoTrackRendererState extends State<VideoTrackRenderer> {
       details.localPosition.dx / constraints.maxWidth,
       details.localPosition.dy / constraints.maxHeight,
     );
+    try {
+      rtc.Helper.setFocusPoint(videoTrack, point);
+    } catch (e) {
+      logger.warning('Got error setFocusPoint : $e');
+    }
 
-    rtc.Helper.setFocusPoint(videoTrack, point);
     rtc.Helper.setExposurePoint(videoTrack, point);
   }
 
@@ -180,8 +183,7 @@ class _VideoTrackRendererState extends State<VideoTrackRenderer> {
       })();
     }
 
-    if ([BrowserType.safari, BrowserType.firefox].contains(lkBrowser()) &&
-        oldWidget.key != widget.key) {
+    if ([BrowserType.safari, BrowserType.firefox].contains(lkBrowser()) && oldWidget.key != widget.key) {
       _renderer?.srcObject = widget.track.mediaStream;
     }
   }
@@ -192,8 +194,7 @@ class _VideoTrackRendererState extends State<VideoTrackRenderer> {
           key: _internalKey,
           builder: (ctx) {
             // let it render before notifying build
-            WidgetsBindingCompatible.instance
-                ?.addPostFrameCallback((timeStamp) {
+            WidgetsBindingCompatible.instance?.addPostFrameCallback((timeStamp) {
               widget.track.onVideoViewBuild?.call(_internalKey);
             });
             return rtc.RTCVideoView(
@@ -206,8 +207,7 @@ class _VideoTrackRendererState extends State<VideoTrackRenderer> {
         );
 
   Widget _videoRendererView() {
-    if (lkPlatformIs(PlatformType.iOS) &&
-        widget.renderMode == VideoRenderMode.platformView) {
+    if (lkPlatformIs(PlatformType.iOS) && widget.renderMode == VideoRenderMode.platformView) {
       return rtc.RTCVideoPlatFormView(
         mirror: _shouldMirror(),
         objectFit: widget.fit.toRTCType(),
@@ -230,14 +230,12 @@ class _VideoTrackRendererState extends State<VideoTrackRenderer> {
       future: _initializeRenderer(),
       builder: (context, snapshot) {
         if ((snapshot.hasData && _renderer != null) ||
-            (lkPlatformIs(PlatformType.iOS) &&
-                widget.renderMode == VideoRenderMode.platformView)) {
+            (lkPlatformIs(PlatformType.iOS) && widget.renderMode == VideoRenderMode.platformView)) {
           return Builder(
             key: _internalKey,
             builder: (ctx) {
               // let it render before notifying build
-              WidgetsBindingCompatible.instance
-                  ?.addPostFrameCallback((timeStamp) {
+              WidgetsBindingCompatible.instance?.addPostFrameCallback((timeStamp) {
                 widget.track.onVideoViewBuild?.call(_internalKey);
               });
 
@@ -253,8 +251,7 @@ class _VideoTrackRendererState extends State<VideoTrackRenderer> {
                         setZoom(details.scale);
                       }
                     },
-                    onTapDown: (TapDownDetails details) =>
-                        onViewFinderTap(details, constraints),
+                    onTapDown: (TapDownDetails details) => onViewFinderTap(details, constraints),
                     child: _videoRendererView(),
                   );
                 },
@@ -268,8 +265,7 @@ class _VideoTrackRendererState extends State<VideoTrackRenderer> {
   // FutureBuilder will cause flickering for flutter web. so using
   // different rendering methods for web and native.
   @override
-  Widget build(BuildContext context) =>
-      kIsWeb ? _videoViewForWeb() : _videoViewForNative();
+  Widget build(BuildContext context) => kIsWeb ? _videoViewForWeb() : _videoViewForNative();
 
   bool _shouldMirror() {
     // off for screen share

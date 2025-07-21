@@ -24,7 +24,7 @@ import java.io.File
 import com.arthenica.ffmpegkit.SessionState
 
 
-class HlsRecorderService : Service(), VideoFrameDispatcher.Sink {
+class DashRecorderService : Service(), VideoFrameDispatcher.Sink {
 
     private var ffmpegSession: Session? = null
     private var videoPipeOutput: OutputStream? = null
@@ -88,13 +88,13 @@ class HlsRecorderService : Service(), VideoFrameDispatcher.Sink {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun buildNotification(): Notification {
-        val chanId = "hls_recorder_channel"
+        val chanId = "dash_recorder_channel"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val chan = NotificationChannel(chanId, "HLS Recorder", NotificationManager.IMPORTANCE_LOW)
+            val chan = NotificationChannel(chanId, "DASH Recorder", NotificationManager.IMPORTANCE_LOW)
             (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(chan)
         }
         return NotificationCompat.Builder(this, chanId)
-            .setContentTitle("Recording LiveKit Track")
+            .setContentTitle("DASH Recording")
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setOngoing(true)
             .build()

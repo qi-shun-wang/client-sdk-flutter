@@ -42,7 +42,7 @@ class VideoFrameProcessor extends TrackProcessor<VideoProcessorOptions> {
   }
 }
 
-class FlutterHlsRecorderService {
+class FlutterDashRecorderService {
   static const MethodChannel channel = MethodChannel('livekit_client');
 
   static Future<void> startRecording({

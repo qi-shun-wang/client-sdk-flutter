@@ -64,14 +64,14 @@ class LiveKitPlugin : FlutterPlugin, MethodCallHandler {
                     result.error("INVALID_ARGUMENT", "trackId and outputDir are required", null)
                     return
                 }
-                val intent = Intent(context, HlsRecorderService::class.java).apply {
+                val intent = Intent(context, DashRecorderService::class.java).apply {
                     putExtra("outputDir", dir)
                 }
                 ContextCompat.startForegroundService(context, intent)
                 result.success(null)
             }
             "stopRecording" -> {
-                context.stopService(Intent(context, HlsRecorderService::class.java))
+                context.stopService(Intent(context, DashRecorderService::class.java))
                 result.success(null)
             }
 

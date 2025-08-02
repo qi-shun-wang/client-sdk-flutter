@@ -30,22 +30,11 @@ import '../track/local/video.dart';
 import '../track/options.dart';
 import '../types/other.dart';
 
-enum VideoViewMirrorMode {
-  auto,
-  off,
-  mirror,
-}
+enum VideoViewMirrorMode { auto, off, mirror }
 
-enum VideoRenderMode {
-  auto,
-  texture,
-  platformView,
-}
+enum VideoRenderMode { auto, texture, platformView }
 
-enum VideoViewFit {
-  contain,
-  cover,
-}
+enum VideoViewFit { contain, cover }
 
 extension VideoViewFitExt on VideoViewFit {
   rtc.RTCVideoViewObjectFit toRTCType() {
@@ -88,8 +77,7 @@ class _VideoTrackRendererState extends State<VideoTrackRenderer> {
   late GlobalKey _internalKey;
 
   Future<rtc.VideoRenderer> _initializeRenderer() async {
-    if (lkPlatformIs(PlatformType.iOS) &&
-        widget.renderMode == VideoRenderMode.platformView) {
+    if (lkPlatformIs(PlatformType.iOS) && widget.renderMode == VideoRenderMode.platformView) {
       return Null as Future<rtc.VideoRenderer>;
     }
     if (_renderer == null) {
@@ -114,9 +102,16 @@ class _VideoTrackRendererState extends State<VideoTrackRenderer> {
       details.localPosition.dx / constraints.maxWidth,
       details.localPosition.dy / constraints.maxHeight,
     );
-
-    rtc.Helper.setFocusPoint(videoTrack, point);
-    rtc.Helper.setExposurePoint(videoTrack, point);
+    try {
+      rtc.Helper.setFocusPoint(videoTrack, point);
+    } catch (e) {
+      logger.warning('Got error setFocusPoint : $e');
+    }
+    try {
+      rtc.Helper.setExposurePoint(videoTrack, point);
+    } catch (e) {
+      logger.warning('Got error setFocusPoint : $e');
+    }
   }
 
   void disposeRenderer() {
@@ -180,8 +175,7 @@ class _VideoTrackRendererState extends State<VideoTrackRenderer> {
       })();
     }
 
-    if ([BrowserType.safari, BrowserType.firefox].contains(lkBrowser()) &&
-        oldWidget.key != widget.key) {
+    if ([BrowserType.safari, BrowserType.firefox].contains(lkBrowser()) && oldWidget.key != widget.key) {
       _renderer?.srcObject = widget.track.mediaStream;
     }
   }
@@ -192,8 +186,7 @@ class _VideoTrackRendererState extends State<VideoTrackRenderer> {
           key: _internalKey,
           builder: (ctx) {
             // let it render before notifying build
-            WidgetsBindingCompatible.instance
-                ?.addPostFrameCallback((timeStamp) {
+            WidgetsBindingCompatible.instance?.addPostFrameCallback((timeStamp) {
               widget.track.onVideoViewBuild?.call(_internalKey);
             });
             return rtc.RTCVideoView(
@@ -206,8 +199,7 @@ class _VideoTrackRendererState extends State<VideoTrackRenderer> {
         );
 
   Widget _videoRendererView() {
-    if (lkPlatformIs(PlatformType.iOS) &&
-        widget.renderMode == VideoRenderMode.platformView) {
+    if (lkPlatformIs(PlatformType.iOS) && widget.renderMode == VideoRenderMode.platformView) {
       return rtc.RTCVideoPlatFormView(
         mirror: _shouldMirror(),
         objectFit: widget.fit.toRTCType(),
@@ -227,49 +219,46 @@ class _VideoTrackRendererState extends State<VideoTrackRenderer> {
   }
 
   Widget _videoViewForNative() => FutureBuilder(
-      future: _initializeRenderer(),
-      builder: (context, snapshot) {
-        if ((snapshot.hasData && _renderer != null) ||
-            (lkPlatformIs(PlatformType.iOS) &&
-                widget.renderMode == VideoRenderMode.platformView)) {
-          return Builder(
-            key: _internalKey,
-            builder: (ctx) {
-              // let it render before notifying build
-              WidgetsBindingCompatible.instance
-                  ?.addPostFrameCallback((timeStamp) {
-                widget.track.onVideoViewBuild?.call(_internalKey);
-              });
+        future: _initializeRenderer(),
+        builder: (context, snapshot) {
+          if ((snapshot.hasData && _renderer != null) ||
+              (lkPlatformIs(PlatformType.iOS) && widget.renderMode == VideoRenderMode.platformView)) {
+            return Builder(
+              key: _internalKey,
+              builder: (ctx) {
+                // let it render before notifying build
+                WidgetsBindingCompatible.instance?.addPostFrameCallback((timeStamp) {
+                  widget.track.onVideoViewBuild?.call(_internalKey);
+                });
 
-              if (!lkPlatformIsMobile() || widget.track is! LocalVideoTrack) {
-                return _videoRendererView();
-              }
-              return LayoutBuilder(
-                builder: (BuildContext context, BoxConstraints constraints) {
-                  return GestureDetector(
-                    onScaleStart: (details) {},
-                    onScaleUpdate: (details) {
-                      if (details.scale != 1.0) {
-                        setZoom(details.scale);
-                      }
-                    },
-                    onTapDown: (TapDownDetails details) =>
-                        onViewFinderTap(details, constraints),
-                    child: _videoRendererView(),
-                  );
-                },
-              );
-            },
-          );
-        }
-        return Container();
-      });
+                if (!lkPlatformIsMobile() || widget.track is! LocalVideoTrack) {
+                  return _videoRendererView();
+                }
+                return LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    return GestureDetector(
+                      onScaleStart: (details) {},
+                      onScaleUpdate: (details) {
+                        if (details.scale != 1.0) {
+                          setZoom(details.scale);
+                        }
+                      },
+                      onTapDown: (TapDownDetails details) => onViewFinderTap(details, constraints),
+                      child: _videoRendererView(),
+                    );
+                  },
+                );
+              },
+            );
+          }
+          return Container();
+        },
+      );
 
   // FutureBuilder will cause flickering for flutter web. so using
   // different rendering methods for web and native.
   @override
-  Widget build(BuildContext context) =>
-      kIsWeb ? _videoViewForWeb() : _videoViewForNative();
+  Widget build(BuildContext context) => kIsWeb ? _videoViewForWeb() : _videoViewForNative();
 
   bool _shouldMirror() {
     // off for screen share
